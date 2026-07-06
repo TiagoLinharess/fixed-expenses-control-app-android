@@ -48,13 +48,9 @@ class RecurringMonthlyTransactionsViewModel(
                     }
                 }
                 .collect { transactions ->
-                    _uiState.update {
-                        it.copy(
-                            items = transactions,
-                            isLoading = false,
-                            errorMessage = null
-                        )
-                    }
+                    _uiState.value = RecurringMonthlyTransactionsUiState.fromItems(
+                        items = transactions
+                    )
                 }
         }
     }

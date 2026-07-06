@@ -8,6 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.fixedexpeneses.FixedExpensesApplication
 import com.example.fixedexpeneses.di.AppContainer
+import com.example.fixedexpeneses.ui.recurring.create.CreateRecurringMonthlyTransactionViewModel
+import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactionDetailViewModel
+import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionViewModel
 import com.example.fixedexpeneses.ui.recurring.RecurringMonthlyTransactionsViewModel
 
 class AppViewModelFactory(
@@ -17,6 +20,27 @@ class AppViewModelFactory(
         if (modelClass.isAssignableFrom(RecurringMonthlyTransactionsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return RecurringMonthlyTransactionsViewModel(
+                appContainer.recurringMonthlyTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(CreateRecurringMonthlyTransactionViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return CreateRecurringMonthlyTransactionViewModel(
+                appContainer.recurringMonthlyTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(RecurringMonthlyTransactionDetailViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RecurringMonthlyTransactionDetailViewModel(
+                appContainer.recurringMonthlyTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(EditRecurringMonthlyTransactionViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return EditRecurringMonthlyTransactionViewModel(
                 appContainer.recurringMonthlyTransactionRepository
             ) as T
         }

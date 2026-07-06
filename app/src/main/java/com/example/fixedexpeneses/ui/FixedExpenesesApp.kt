@@ -17,12 +17,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.fixedexpeneses.navigation.AppRoute
 import com.example.fixedexpeneses.navigation.TopLevelDestination
+import com.example.fixedexpeneses.ui.recurring.create.CreateRecurringMonthlyTransactionRoute
+import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactionDetailRoute
+import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionRoute
+import com.example.fixedexpeneses.ui.recurring.RecurringMonthlyTransactionsRoute
 import com.example.fixedexpeneses.ui.theme.FixedExpenesesTheme
 
 @PreviewScreenSizes
@@ -71,19 +77,91 @@ fun FixedExpenesesApp() {
             }
 
             composable(AppRoute.RecurringMonthlyTransactions.route) {
-                PlaceholderScreen("Contas fixas")
+                RecurringMonthlyTransactionsRoute(
+                    onAddClick = {
+                        navController.navigate(AppRoute.CreateRecurringMonthlyTransaction.route)
+                    },
+                    onTransactionClick = { transactionId ->
+                        navController.navigate(
+                            AppRoute.RecurringMonthlyTransactionDetail.createRoute(transactionId)
+                        )
+                    }
+                )
             }
 
             composable(AppRoute.CreateRecurringMonthlyTransaction.route) {
-                PlaceholderScreen("Criar conta fixa")
+                CreateRecurringMonthlyTransactionRoute(
+                    onBackClick = { navController.navigateUp() },
+                    onSaved = {
+                        navController.popBackStack(
+                            route = AppRoute.RecurringMonthlyTransactions.route,
+                            inclusive = false
+                        )
+                    }
+                )
             }
 
-            composable(AppRoute.RecurringMonthlyTransactionDetail.route) {
-                PlaceholderScreen("Detalhe da conta fixa")
+            composable(
+                route = AppRoute.RecurringMonthlyTransactionDetail.route,
+                arguments = listOf(
+                    navArgument(
+                        AppRoute.RecurringMonthlyTransactionDetail.TRANSACTION_ID_ARGUMENT
+                    ) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.RecurringMonthlyTransactionDetail.TRANSACTION_ID_ARGUMENT
+                )
+
+                if (transactionId == null) {
+                    PlaceholderScreen("Conta fixa nao encontrada")
+                } else {
+                    RecurringMonthlyTransactionDetailRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onEditClick = { id ->
+                            navController.navigate(
+                                AppRoute.EditRecurringMonthlyTransaction.createRoute(id)
+                            )
+                        }
+                    )
+                }
             }
 
-            composable(AppRoute.EditRecurringMonthlyTransaction.route) {
-                PlaceholderScreen("Editar conta fixa")
+            composable(
+                route = AppRoute.EditRecurringMonthlyTransaction.route,
+                arguments = listOf(
+                    navArgument(
+                        AppRoute.EditRecurringMonthlyTransaction.TRANSACTION_ID_ARGUMENT
+                    ) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.EditRecurringMonthlyTransaction.TRANSACTION_ID_ARGUMENT
+                )
+
+                if (transactionId == null) {
+                    PlaceholderScreen("Conta fixa nao encontrada")
+                } else {
+                    EditRecurringMonthlyTransactionRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onSaved = { id ->
+                            navController.navigate(
+                                AppRoute.RecurringMonthlyTransactionDetail.createRoute(id)
+                            ) {
+                                popUpTo(AppRoute.RecurringMonthlyTransactions.route) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             }
 
             composable(AppRoute.InstallmentTransactions.route) {
