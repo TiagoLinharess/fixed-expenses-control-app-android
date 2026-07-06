@@ -30,13 +30,13 @@ class EditRecurringMonthlyTransactionViewModel(
                 _uiState.value = transaction?.toEditUiState()
                     ?: EditRecurringMonthlyTransactionUiState(
                         isLoading = false,
-                        errorMessage = "Conta fixa nao encontrada."
+                        errorMessage = "Conta fixa não encontrada."
                     )
             }.onFailure { error ->
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Nao foi possivel carregar a conta fixa."
+                        errorMessage = error.message ?: "Não foi possível carregar a conta fixa."
                     )
                 }
             }
@@ -75,7 +75,7 @@ class EditRecurringMonthlyTransactionViewModel(
 
         if (!state.canSave || amountInCents == null || dueDay == null) {
             _uiState.update {
-                it.copy(errorMessage = "Preencha os campos obrigatorios corretamente.")
+                it.copy(errorMessage = "Preencha os campos obrigatórios corretamente.")
             }
             return
         }
@@ -103,7 +103,7 @@ class EditRecurringMonthlyTransactionViewModel(
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        errorMessage = error.message ?: "Nao foi possivel salvar a conta fixa."
+                        errorMessage = error.message ?: "Não foi possível salvar a conta fixa."
                     )
                 }
             }

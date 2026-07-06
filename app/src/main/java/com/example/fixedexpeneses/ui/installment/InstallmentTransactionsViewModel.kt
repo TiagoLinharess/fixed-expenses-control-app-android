@@ -1,20 +1,21 @@
-package com.example.fixedexpeneses.ui.recurring
+package com.example.fixedexpeneses.ui.installment
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.fixedexpeneses.domain.repository.RecurringMonthlyTransactionRepository
+import com.example.fixedexpeneses.domain.repository.InstallmentTransactionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
-class RecurringMonthlyTransactionsViewModel(
-    private val repository: RecurringMonthlyTransactionRepository
+class InstallmentTransactionsViewModel(
+    private val repository: InstallmentTransactionRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(RecurringMonthlyTransactionsUiState())
-    val uiState: StateFlow<RecurringMonthlyTransactionsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(InstallmentTransactionsUiState())
+    val uiState: StateFlow<InstallmentTransactionsUiState> = _uiState.asStateFlow()
 
     init {
         observeTransactions()
@@ -26,14 +27,10 @@ class RecurringMonthlyTransactionsViewModel(
                 repository.deleteById(id)
             }.onFailure { error ->
                 _uiState.update {
-                    it.copy(errorMessage = error.message ?: "Não foi possível excluir a conta fixa.")
+                    it.copy(errorMessage = error.message ?: "Não foi possível excluir a parcelada.")
                 }
             }
         }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
     }
 
     private fun observeTransactions() {
@@ -43,15 +40,21 @@ class RecurringMonthlyTransactionsViewModel(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "Não foi possível carregar as contas fixas."
+                            errorMessage = error.message ?: "Não foi possível carregar as parceladas."
                         )
                     }
                 }
                 .collect { transactions ->
-                    _uiState.value = RecurringMonthlyTransactionsUiState.fromItems(
-                        items = transactions
+                    _uiState.value = InstallmentTransactionsUiState.fromItems(
+                        items = transactions,
+                        currentYearMonth = currentYearMonth()
                     )
                 }
         }
+    }
+
+    private fun currentYearMonth(): Int {
+        val calendar = Calendar.getInstance()
+        return calendar.get(Calendar.YEAR) * 100 + calendar.get(Calendar.MONTH) + 1
     }
 }

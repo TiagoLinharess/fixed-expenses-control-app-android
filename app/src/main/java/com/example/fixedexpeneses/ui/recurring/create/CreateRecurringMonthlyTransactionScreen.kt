@@ -94,7 +94,7 @@ fun CreateRecurringMonthlyTransactionScreen(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Cadastre uma entrada ou saida mensal",
+                    text = "Cadastre uma entrada ou saída mensal.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -145,13 +145,13 @@ fun CreateRecurringMonthlyTransactionScreen(
         OutlinedTextField(
             value = uiState.dueDay,
             onValueChange = onDueDayChange,
-            label = { Text("Dia do mes") },
+            label = { Text("Dia do mês") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
 
-        ChipSection(title = "Metodo de pagamento") {
+        ChipSection(title = "Método de pagamento") {
             FilterChip(
                 selected = uiState.paymentMethod == null,
                 onClick = { onPaymentMethodChange(null) },
@@ -208,21 +208,21 @@ private fun ChipSection(
 private val TransactionType.label: String
     get() = when (this) {
         TransactionType.INCOME -> "Entrada"
-        TransactionType.EXPENSE -> "Saida"
+        TransactionType.EXPENSE -> "Saída"
     }
 
 private val AmountBehavior.label: String
     get() = when (this) {
         AmountBehavior.FIXED -> "Fixo"
-        AmountBehavior.VARIABLE -> "Variavel"
+        AmountBehavior.VARIABLE -> "Variável"
     }
 
 private val PaymentMethod.label: String
     get() = when (this) {
         PaymentMethod.PIX -> "PIX"
         PaymentMethod.CASH -> "Dinheiro"
-        PaymentMethod.CREDIT -> "Credito"
-        PaymentMethod.DEBIT -> "Debito"
+        PaymentMethod.CREDIT -> "Crédito"
+        PaymentMethod.DEBIT -> "Débito"
     }
 
 @Preview(showBackground = true)

@@ -8,6 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.fixedexpeneses.FixedExpensesApplication
 import com.example.fixedexpeneses.di.AppContainer
+import com.example.fixedexpeneses.ui.installment.create.CreateInstallmentTransactionViewModel
+import com.example.fixedexpeneses.ui.installment.detail.InstallmentTransactionDetailViewModel
+import com.example.fixedexpeneses.ui.installment.edit.EditInstallmentTransactionViewModel
+import com.example.fixedexpeneses.ui.installment.InstallmentTransactionsViewModel
 import com.example.fixedexpeneses.ui.recurring.create.CreateRecurringMonthlyTransactionViewModel
 import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactionDetailViewModel
 import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionViewModel
@@ -42,6 +46,34 @@ class AppViewModelFactory(
             @Suppress("UNCHECKED_CAST")
             return EditRecurringMonthlyTransactionViewModel(
                 appContainer.recurringMonthlyTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(InstallmentTransactionsViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return InstallmentTransactionsViewModel(
+                appContainer.installmentTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(CreateInstallmentTransactionViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return CreateInstallmentTransactionViewModel(
+                appContainer.installmentTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(InstallmentTransactionDetailViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return InstallmentTransactionDetailViewModel(
+                appContainer.installmentTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(EditInstallmentTransactionViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return EditInstallmentTransactionViewModel(
+                appContainer.installmentTransactionRepository
             ) as T
         }
 

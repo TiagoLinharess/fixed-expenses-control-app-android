@@ -34,4 +34,24 @@ sealed interface AppRoute {
     data object InstallmentTransactions : AppRoute {
         override val route: String = "installment-transactions"
     }
+
+    data object CreateInstallmentTransaction : AppRoute {
+        override val route: String = "installment-transactions/create"
+    }
+
+    data object InstallmentTransactionDetail : AppRoute {
+        override val route: String = "installment-transactions/{transactionId}"
+        const val TRANSACTION_ID_ARGUMENT = "transactionId"
+
+        fun createRoute(transactionId: Long): String =
+            "installment-transactions/$transactionId"
+    }
+
+    data object EditInstallmentTransaction : AppRoute {
+        override val route: String = "installment-transactions/{transactionId}/edit"
+        const val TRANSACTION_ID_ARGUMENT = "transactionId"
+
+        fun createRoute(transactionId: Long): String =
+            "installment-transactions/$transactionId/edit"
+    }
 }

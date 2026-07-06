@@ -1,4 +1,4 @@
-package com.example.fixedexpeneses.ui.recurring
+package com.example.fixedexpeneses.ui.installment
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,28 +28,29 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.fixedexpeneses.domain.model.AmountBehavior
+import com.example.fixedexpeneses.domain.model.InstallmentTransaction
 import com.example.fixedexpeneses.domain.model.PaymentMethod
-import com.example.fixedexpeneses.domain.model.RecurringMonthlyTransaction
 import com.example.fixedexpeneses.domain.model.TransactionType
 import com.example.fixedexpeneses.ui.rememberAppViewModelFactory
 import com.example.fixedexpeneses.ui.theme.FixedExpenesesTheme
 
 @Composable
-fun RecurringMonthlyTransactionsRoute(
+fun InstallmentTransactionsRoute(
     onAddClick: () -> Unit,
     onTransactionClick: (Long) -> Unit,
-    viewModel: RecurringMonthlyTransactionsViewModel = viewModel(
+    viewModel: InstallmentTransactionsViewModel = viewModel(
         factory = rememberAppViewModelFactory()
     )
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    RecurringMonthlyTransactionsScreen(
+    InstallmentTransactionsScreen(
         uiState = uiState,
         onAddClick = onAddClick,
         onTransactionClick = onTransactionClick,
@@ -58,8 +59,8 @@ fun RecurringMonthlyTransactionsRoute(
 }
 
 @Composable
-fun RecurringMonthlyTransactionsScreen(
-    uiState: RecurringMonthlyTransactionsUiState,
+fun InstallmentTransactionsScreen(
+    uiState: InstallmentTransactionsUiState,
     onAddClick: () -> Unit,
     onTransactionClick: (Long) -> Unit,
     onDeleteTransaction: (Long) -> Unit,
@@ -78,12 +79,12 @@ fun RecurringMonthlyTransactionsScreen(
         ) {
             Column {
                 Text(
-                    text = "Contas fixas",
+                    text = "Parceladas",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Entradas e saídas que entram no mês.",
+                    text = "Compras e valores com período definido.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -97,48 +98,34 @@ fun RecurringMonthlyTransactionsScreen(
         FinancialSummary(
             totalIncomeInCents = uiState.totalIncomeInCents,
             totalExpenseInCents = uiState.totalExpenseInCents,
-            balanceInCents = uiState.balanceInCents
+            balanceInCents = uiState.balanceInCents,
+            activeItemsCount = uiState.activeItemsCount,
+            currentYearMonth = uiState.currentYearMonth
         )
 
         when {
-            uiState.isLoading -> {
-                LoadingContent(modifier = Modifier.weight(1f))
-            }
-
-            uiState.errorMessage != null -> {
-                MessageContent(
-                    title = "Não foi possível carregar.",
-                    message = uiState.errorMessage,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            uiState.items.isEmpty() -> {
-                MessageContent(
-                    title = "Nenhuma conta fixa ainda",
-                    message = "Adicione uma entrada ou saída fixa para começar.",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(
-                        items = uiState.items,
-                        key = { it.id }
-                    ) { transaction ->
-                        SwipeToDeleteItem(
-                            onDelete = { onDeleteTransaction(transaction.id) }
-                        ) {
-                            RecurringMonthlyTransactionItem(
-                                transaction = transaction,
-                                onClick = { onTransactionClick(transaction.id) }
-                            )
-                            HorizontalDivider()
-                        }
+            uiState.isLoading -> LoadingContent(modifier = Modifier.weight(1f))
+            uiState.errorMessage != null -> MessageContent(
+                title = "Não foi possível carregar.",
+                message = uiState.errorMessage,
+                modifier = Modifier.weight(1f)
+            )
+            uiState.items.isEmpty() -> MessageContent(
+                title = "Nenhuma parcelada ainda",
+                message = "Adicione uma compra ou entrada parcelada para começar.",
+                modifier = Modifier.weight(1f)
+            )
+            else -> LazyColumn(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(items = uiState.items, key = { it.id }) { transaction ->
+                    SwipeToDeleteItem(onDelete = { onDeleteTransaction(transaction.id) }) {
+                        InstallmentTransactionItem(
+                            transaction = transaction,
+                            onClick = { onTransactionClick(transaction.id) }
+                        )
+                        HorizontalDivider()
                     }
                 }
             }
@@ -151,28 +138,26 @@ private fun FinancialSummary(
     totalIncomeInCents: Long,
     totalExpenseInCents: Long,
     balanceInCents: Long,
+    activeItemsCount: Int,
+    currentYearMonth: Int,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SummaryRow(
-                label = "Entradas",
-                value = totalIncomeInCents.toBrazilianCurrency()
+            Text(
+                text = "Resumo de ${currentYearMonth.toMonthYearLabel()}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
-            SummaryRow(
-                label = "Saídas",
-                value = totalExpenseInCents.toBrazilianCurrency()
-            )
+            SummaryRow("Parceladas ativas", activeItemsCount.toString())
+            SummaryRow("Entradas no mês", totalIncomeInCents.toBrazilianCurrency())
+            SummaryRow("Saídas no mês", totalExpenseInCents.toBrazilianCurrency())
             HorizontalDivider()
             SummaryRow(
                 label = "Saldo",
@@ -192,7 +177,7 @@ private fun SummaryRow(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -249,15 +234,13 @@ private fun SwipeToDeleteItem(
                 )
             }
         },
-        content = {
-            content()
-        }
+        content = { content() }
     )
 }
 
 @Composable
-private fun RecurringMonthlyTransactionItem(
-    transaction: RecurringMonthlyTransaction,
+private fun InstallmentTransactionItem(
+    transaction: InstallmentTransaction,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -265,7 +248,7 @@ private fun RecurringMonthlyTransactionItem(
         headlineContent = { Text(transaction.name) },
         supportingContent = {
             Text(
-                text = "${transaction.type.label} - ${transaction.amountBehavior.label} - Dia ${transaction.dueDay}"
+                text = "${transaction.type.label} - ${transaction.yearMonthFrom.toMonthYearLabel()} até ${transaction.yearMonthTo.toMonthYearLabel()}"
             )
         },
         trailingContent = {
@@ -281,10 +264,7 @@ private fun RecurringMonthlyTransactionItem(
 
 @Composable
 private fun LoadingContent(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
@@ -295,10 +275,7 @@ private fun MessageContent(
     message: String,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -337,26 +314,26 @@ private fun Long.toBrazilianCurrency(): String {
 
 @Preview(showBackground = true)
 @Composable
-private fun RecurringMonthlyTransactionsScreenPreview() {
+private fun InstallmentTransactionsScreenPreview() {
     FixedExpenesesTheme {
-        RecurringMonthlyTransactionsScreen(
-            uiState = RecurringMonthlyTransactionsUiState(
-                isLoading = false,
+        InstallmentTransactionsScreen(
+            uiState = InstallmentTransactionsUiState.fromItems(
                 items = listOf(
-                    RecurringMonthlyTransaction(
+                    InstallmentTransaction(
                         id = 1,
                         type = TransactionType.EXPENSE,
-                        name = "Internet",
-                        amountInCents = 12000,
+                        name = "Notebook",
+                        amountInCents = 35000,
                         amountBehavior = AmountBehavior.FIXED,
-                        dueDay = 10,
+                        dueDay = 15,
                         paymentMethod = PaymentMethod.CREDIT,
+                        yearMonthFrom = 202607,
+                        yearMonthTo = 202612,
                         createdAt = 0,
                         updatedAt = 0
                     )
                 ),
-                totalExpenseInCents = 12000,
-                balanceInCents = -12000
+                currentYearMonth = 202607
             ),
             onAddClick = {},
             onTransactionClick = {},

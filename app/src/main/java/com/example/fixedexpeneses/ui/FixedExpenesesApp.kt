@@ -25,6 +25,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.fixedexpeneses.navigation.AppRoute
 import com.example.fixedexpeneses.navigation.TopLevelDestination
+import com.example.fixedexpeneses.ui.installment.create.CreateInstallmentTransactionRoute
+import com.example.fixedexpeneses.ui.installment.detail.InstallmentTransactionDetailRoute
+import com.example.fixedexpeneses.ui.installment.edit.EditInstallmentTransactionRoute
+import com.example.fixedexpeneses.ui.installment.InstallmentTransactionsRoute
 import com.example.fixedexpeneses.ui.recurring.create.CreateRecurringMonthlyTransactionRoute
 import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactionDetailRoute
 import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionRoute
@@ -116,7 +120,7 @@ fun FixedExpenesesApp() {
                 )
 
                 if (transactionId == null) {
-                    PlaceholderScreen("Conta fixa nao encontrada")
+                    PlaceholderScreen("Conta fixa não encontrada.")
                 } else {
                     RecurringMonthlyTransactionDetailRoute(
                         transactionId = transactionId,
@@ -145,7 +149,7 @@ fun FixedExpenesesApp() {
                 )
 
                 if (transactionId == null) {
-                    PlaceholderScreen("Conta fixa nao encontrada")
+                    PlaceholderScreen("Conta fixa não encontrada.")
                 } else {
                     EditRecurringMonthlyTransactionRoute(
                         transactionId = transactionId,
@@ -165,7 +169,81 @@ fun FixedExpenesesApp() {
             }
 
             composable(AppRoute.InstallmentTransactions.route) {
-                PlaceholderScreen("Parceladas")
+                InstallmentTransactionsRoute(
+                    onAddClick = {
+                        navController.navigate(AppRoute.CreateInstallmentTransaction.route)
+                    },
+                    onTransactionClick = { transactionId ->
+                        navController.navigate(
+                            AppRoute.InstallmentTransactionDetail.createRoute(transactionId)
+                        )
+                    }
+                )
+            }
+
+            composable(AppRoute.CreateInstallmentTransaction.route) {
+                CreateInstallmentTransactionRoute(
+                    onBackClick = { navController.navigateUp() },
+                    onSaved = {
+                        navController.popBackStack(
+                            route = AppRoute.InstallmentTransactions.route,
+                            inclusive = false
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = AppRoute.InstallmentTransactionDetail.route,
+                arguments = listOf(
+                    navArgument(AppRoute.InstallmentTransactionDetail.TRANSACTION_ID_ARGUMENT) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.InstallmentTransactionDetail.TRANSACTION_ID_ARGUMENT
+                )
+                if (transactionId == null) {
+                    PlaceholderScreen("Parcelada não encontrada.")
+                } else {
+                    InstallmentTransactionDetailRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onEditClick = { id ->
+                            navController.navigate(AppRoute.EditInstallmentTransaction.createRoute(id))
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = AppRoute.EditInstallmentTransaction.route,
+                arguments = listOf(
+                    navArgument(AppRoute.EditInstallmentTransaction.TRANSACTION_ID_ARGUMENT) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.EditInstallmentTransaction.TRANSACTION_ID_ARGUMENT
+                )
+                if (transactionId == null) {
+                    PlaceholderScreen("Parcelada não encontrada.")
+                } else {
+                    EditInstallmentTransactionRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onSaved = { id ->
+                            navController.navigate(AppRoute.InstallmentTransactionDetail.createRoute(id)) {
+                                popUpTo(AppRoute.InstallmentTransactions.route) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             }
         }
     }

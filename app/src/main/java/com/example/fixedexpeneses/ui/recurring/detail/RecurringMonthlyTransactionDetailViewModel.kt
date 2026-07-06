@@ -27,7 +27,7 @@ class RecurringMonthlyTransactionDetailViewModel(
                         transaction = transaction,
                         isLoading = false,
                         errorMessage = if (transaction == null) {
-                            "Conta fixa nao encontrada."
+                            "Conta fixa não encontrada."
                         } else {
                             null
                         }
@@ -37,7 +37,7 @@ class RecurringMonthlyTransactionDetailViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Nao foi possivel carregar a conta fixa."
+                        errorMessage = error.message ?: "Não foi possível carregar a conta fixa."
                     )
                 }
             }

@@ -102,7 +102,7 @@ fun EditRecurringMonthlyTransactionScreen(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Atualize os dados da conta mensal",
+                    text = "Atualize os dados da conta mensal.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -158,13 +158,13 @@ fun EditRecurringMonthlyTransactionScreen(
         OutlinedTextField(
             value = uiState.dueDay,
             onValueChange = onDueDayChange,
-            label = { Text("Dia do mes") },
+            label = { Text("Dia do mês") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
 
-        ChipSection(title = "Metodo de pagamento") {
+        ChipSection(title = "Método de pagamento") {
             FilterChip(
                 selected = uiState.paymentMethod == null,
                 onClick = { onPaymentMethodChange(null) },
@@ -192,7 +192,7 @@ fun EditRecurringMonthlyTransactionScreen(
             enabled = uiState.canSave,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (uiState.isSaving) "Salvando..." else "Salvar alteracoes")
+            Text(if (uiState.isSaving) "Salvando..." else "Salvar alterações")
         }
     }
 }
@@ -221,21 +221,21 @@ private fun ChipSection(
 private val TransactionType.label: String
     get() = when (this) {
         TransactionType.INCOME -> "Entrada"
-        TransactionType.EXPENSE -> "Saida"
+        TransactionType.EXPENSE -> "Saída"
     }
 
 private val AmountBehavior.label: String
     get() = when (this) {
         AmountBehavior.FIXED -> "Fixo"
-        AmountBehavior.VARIABLE -> "Variavel"
+        AmountBehavior.VARIABLE -> "Variável"
     }
 
 private val PaymentMethod.label: String
     get() = when (this) {
         PaymentMethod.PIX -> "PIX"
         PaymentMethod.CASH -> "Dinheiro"
-        PaymentMethod.CREDIT -> "Credito"
-        PaymentMethod.DEBIT -> "Debito"
+        PaymentMethod.CREDIT -> "Crédito"
+        PaymentMethod.DEBIT -> "Débito"
     }
 
 @Preview(showBackground = true)

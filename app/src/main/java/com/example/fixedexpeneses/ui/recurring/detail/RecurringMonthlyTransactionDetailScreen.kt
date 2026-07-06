@@ -125,8 +125,8 @@ private fun TransactionDetails(
 
         DetailRow(label = "Tipo", value = transaction.type.label)
         DetailRow(label = "Valor", value = transaction.amountBehavior.label)
-        DetailRow(label = "Dia do mes", value = transaction.dueDay.toString())
-        DetailRow(label = "Pagamento", value = transaction.paymentMethod?.label ?: "Nao informado")
+        DetailRow(label = "Dia do mês", value = transaction.dueDay.toString())
+        DetailRow(label = "Pagamento", value = transaction.paymentMethod?.label ?: "Não informado")
     }
 }
 
@@ -156,21 +156,21 @@ private fun DetailRow(
 private val TransactionType.label: String
     get() = when (this) {
         TransactionType.INCOME -> "Entrada"
-        TransactionType.EXPENSE -> "Saida"
+        TransactionType.EXPENSE -> "Saída"
     }
 
 private val AmountBehavior.label: String
     get() = when (this) {
         AmountBehavior.FIXED -> "Fixo"
-        AmountBehavior.VARIABLE -> "Variavel"
+        AmountBehavior.VARIABLE -> "Variável"
     }
 
 private val PaymentMethod.label: String
     get() = when (this) {
         PaymentMethod.PIX -> "PIX"
         PaymentMethod.CASH -> "Dinheiro"
-        PaymentMethod.CREDIT -> "Credito"
-        PaymentMethod.DEBIT -> "Debito"
+        PaymentMethod.CREDIT -> "Crédito"
+        PaymentMethod.DEBIT -> "Débito"
     }
 
 private fun Long.toBrazilianCurrency(): String {
