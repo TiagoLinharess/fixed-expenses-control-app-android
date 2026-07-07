@@ -2,7 +2,10 @@ package com.example.fixedexpeneses.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.fixedexpeneses.domain.model.AmountBehavior
 import com.example.fixedexpeneses.domain.model.InstallmentTransaction
+import com.example.fixedexpeneses.domain.model.PaymentStatus
+import com.example.fixedexpeneses.domain.model.RecurringMonthlyTransaction
 import com.example.fixedexpeneses.domain.model.Transaction
 import com.example.fixedexpeneses.domain.model.TransactionType
 import com.example.fixedexpeneses.domain.repository.AppPreferencesRepository
@@ -96,6 +99,31 @@ class HomeViewModel(
         }
     }
 
+    fun toggleTransactionPaymentStatus(id: Long) {
+        viewModelScope.launch {
+            runCatching {
+                val transaction = transactionRepository.getById(id) ?: return@runCatching
+                val nextStatus = when (transaction.status) {
+                    PaymentStatus.PAID -> PaymentStatus.PENDING
+                    PaymentStatus.PENDING -> PaymentStatus.PAID
+                }
+
+                transactionRepository.update(
+                    transaction.copy(
+                        status = nextStatus,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                )
+            }.onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = error.message ?: "Não foi possível atualizar o status."
+                    )
+                }
+            }
+        }
+    }
+
     private fun observeBaseTransactions() {
         viewModelScope.launch {
             combine(
@@ -147,11 +175,13 @@ class HomeViewModel(
                             referenceMonth = yearMonth.referenceMonth(),
                             referenceYear = yearMonth.referenceYear()
                         ),
+                        recurringMonthlyTransactionRepository.observeAll(),
                         installmentTransactionRepository.observeAll()
-                    ) { transactions, installmentTransactions ->
+                    ) { transactions, recurringTransactions, installmentTransactions ->
                         MonthlyTransactionsSnapshot(
                             yearMonth = yearMonth,
                             transactions = transactions,
+                            recurringTransactions = recurringTransactions,
                             installmentTransactions = installmentTransactions
                         )
                     }
@@ -160,6 +190,7 @@ class HomeViewModel(
                     val items = snapshot.transactions.map { transaction ->
                         transaction.toHomeItem(
                             selectedYearMonth = snapshot.yearMonth,
+                            recurringTransactions = snapshot.recurringTransactions,
                             installmentTransactions = snapshot.installmentTransactions
                         )
                     }
@@ -185,12 +216,17 @@ class HomeViewModel(
 
     private fun Transaction.toHomeItem(
         selectedYearMonth: Int,
+        recurringTransactions: List<RecurringMonthlyTransaction>,
         installmentTransactions: List<InstallmentTransaction>
     ): HomeTransactionItem {
+        val recurringTransaction = recurringMonthlyTransactionId?.let { id ->
+            recurringTransactions.firstOrNull { it.id == id }
+        }
         val installmentTransaction = installmentTransactionId?.let { id ->
             installmentTransactions.firstOrNull { it.id == id }
         }
         val sourceDescription = when {
+            recurringTransaction != null -> recurringTransaction.sourceDescription()
             recurringMonthlyTransactionId != null -> "Fixa"
             installmentTransaction != null -> installmentTransaction.installmentDescriptionAt(selectedYearMonth)
             else -> "Avulsa"
@@ -208,9 +244,19 @@ class HomeViewModel(
         )
     }
 
+    private fun RecurringMonthlyTransaction.sourceDescription(): String =
+        when (amountBehavior) {
+            AmountBehavior.FIXED -> "Fixa"
+            AmountBehavior.VARIABLE -> "Fixa variável"
+        }
+
     private fun InstallmentTransaction.installmentDescriptionAt(yearMonth: Int): String {
         val number = installmentNumberAt(yearMonth) ?: return "Parcelada"
-        return "Parcela $number/${installmentCount()}"
+        val amountBehaviorLabel = when (amountBehavior) {
+            AmountBehavior.FIXED -> "Parcelada"
+            AmountBehavior.VARIABLE -> "Parcelada variável"
+        }
+        return "$amountBehaviorLabel $number/${installmentCount()}"
     }
 
     private fun InstallmentTransaction.installmentNumberAt(yearMonth: Int): Int? {
@@ -227,6 +273,7 @@ class HomeViewModel(
     private data class MonthlyTransactionsSnapshot(
         val yearMonth: Int,
         val transactions: List<Transaction>,
+        val recurringTransactions: List<RecurringMonthlyTransaction>,
         val installmentTransactions: List<InstallmentTransaction>
     )
 

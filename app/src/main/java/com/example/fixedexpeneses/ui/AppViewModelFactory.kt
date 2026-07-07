@@ -17,6 +17,8 @@ import com.example.fixedexpeneses.ui.recurring.create.CreateRecurringMonthlyTran
 import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactionDetailViewModel
 import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionViewModel
 import com.example.fixedexpeneses.ui.recurring.RecurringMonthlyTransactionsViewModel
+import com.example.fixedexpeneses.ui.transaction.detail.MonthlyTransactionDetailViewModel
+import com.example.fixedexpeneses.ui.transaction.edit.EditMonthlyTransactionViewModel
 
 class AppViewModelFactory(
     private val appContainer: AppContainer
@@ -86,6 +88,24 @@ class AppViewModelFactory(
             @Suppress("UNCHECKED_CAST")
             return EditInstallmentTransactionViewModel(
                 appContainer.installmentTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(MonthlyTransactionDetailViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return MonthlyTransactionDetailViewModel(
+                transactionRepository = appContainer.transactionRepository,
+                recurringMonthlyTransactionRepository = appContainer.recurringMonthlyTransactionRepository,
+                installmentTransactionRepository = appContainer.installmentTransactionRepository
+            ) as T
+        }
+
+        if (modelClass.isAssignableFrom(EditMonthlyTransactionViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return EditMonthlyTransactionViewModel(
+                transactionRepository = appContainer.transactionRepository,
+                recurringMonthlyTransactionRepository = appContainer.recurringMonthlyTransactionRepository,
+                installmentTransactionRepository = appContainer.installmentTransactionRepository
             ) as T
         }
 

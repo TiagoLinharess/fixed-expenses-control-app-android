@@ -35,6 +35,8 @@ import com.example.fixedexpeneses.ui.recurring.detail.RecurringMonthlyTransactio
 import com.example.fixedexpeneses.ui.recurring.edit.EditRecurringMonthlyTransactionRoute
 import com.example.fixedexpeneses.ui.recurring.RecurringMonthlyTransactionsRoute
 import com.example.fixedexpeneses.ui.theme.FixedExpenesesTheme
+import com.example.fixedexpeneses.ui.transaction.detail.MonthlyTransactionDetailRoute
+import com.example.fixedexpeneses.ui.transaction.edit.EditMonthlyTransactionRoute
 
 @PreviewScreenSizes
 @Composable
@@ -78,7 +80,68 @@ fun FixedExpenesesApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppRoute.Home.route) {
-                HomeRoute()
+                HomeRoute(
+                    onTransactionClick = { transactionId ->
+                        navController.navigate(
+                            AppRoute.MonthlyTransactionDetail.createRoute(transactionId)
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = AppRoute.MonthlyTransactionDetail.route,
+                arguments = listOf(
+                    navArgument(AppRoute.MonthlyTransactionDetail.TRANSACTION_ID_ARGUMENT) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.MonthlyTransactionDetail.TRANSACTION_ID_ARGUMENT
+                )
+
+                if (transactionId == null) {
+                    PlaceholderScreen("Transação não encontrada.")
+                } else {
+                    MonthlyTransactionDetailRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onEditClick = { id ->
+                            navController.navigate(AppRoute.EditMonthlyTransaction.createRoute(id))
+                        }
+                    )
+                }
+            }
+
+            composable(
+                route = AppRoute.EditMonthlyTransaction.route,
+                arguments = listOf(
+                    navArgument(AppRoute.EditMonthlyTransaction.TRANSACTION_ID_ARGUMENT) {
+                        type = NavType.LongType
+                    }
+                )
+            ) { backStackEntry ->
+                val transactionId = backStackEntry.arguments?.getLong(
+                    AppRoute.EditMonthlyTransaction.TRANSACTION_ID_ARGUMENT
+                )
+
+                if (transactionId == null) {
+                    PlaceholderScreen("Transação não encontrada.")
+                } else {
+                    EditMonthlyTransactionRoute(
+                        transactionId = transactionId,
+                        onBackClick = { navController.navigateUp() },
+                        onSaved = { id ->
+                            navController.navigate(AppRoute.MonthlyTransactionDetail.createRoute(id)) {
+                                popUpTo(AppRoute.Home.route) {
+                                    inclusive = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             }
 
             composable(AppRoute.RecurringMonthlyTransactions.route) {

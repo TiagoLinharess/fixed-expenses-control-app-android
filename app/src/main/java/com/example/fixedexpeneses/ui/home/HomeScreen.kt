@@ -2,6 +2,7 @@ package com.example.fixedexpeneses.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import com.example.fixedexpeneses.ui.theme.FixedExpenesesTheme
 
 @Composable
 fun HomeRoute(
+    onTransactionClick: (Long) -> Unit,
     viewModel: HomeViewModel = viewModel(factory = rememberAppViewModelFactory())
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -59,7 +61,9 @@ fun HomeRoute(
     HomeScreen(
         uiState = uiState,
         onMonthSelected = viewModel::onMonthSelected,
-        onDeleteTransaction = viewModel::deleteTransaction
+        onDeleteTransaction = viewModel::deleteTransaction,
+        onToggleTransactionStatus = viewModel::toggleTransactionPaymentStatus,
+        onTransactionClick = onTransactionClick
     )
 }
 
@@ -68,6 +72,8 @@ fun HomeScreen(
     uiState: HomeUiState,
     onMonthSelected: (Int) -> Unit,
     onDeleteTransaction: (Long) -> Unit,
+    onToggleTransactionStatus: (Long) -> Unit,
+    onTransactionClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var transactionPendingDeletion by remember { mutableStateOf<HomeTransactionItem?>(null) }
@@ -129,7 +135,9 @@ fun HomeScreen(
             item {
                 MonthlyTransactionsSection(
                     transactions = uiState.transactions,
-                    onDeleteTransaction = { transactionPendingDeletion = it }
+                    onDeleteTransaction = { transactionPendingDeletion = it },
+                    onToggleTransactionStatus = onToggleTransactionStatus,
+                    onTransactionClick = onTransactionClick
                 )
             }
         }
@@ -749,6 +757,8 @@ private fun GeneratingMonthMessage(modifier: Modifier = Modifier) {
 private fun MonthlyTransactionsSection(
     transactions: List<HomeTransactionItem>,
     onDeleteTransaction: (HomeTransactionItem) -> Unit,
+    onToggleTransactionStatus: (Long) -> Unit,
+    onTransactionClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     HomeSectionContainer(modifier = modifier) {
@@ -767,8 +777,15 @@ private fun MonthlyTransactionsSection(
                 )
             } else {
                 transactions.forEachIndexed { index, transaction ->
-                    SwipeToDeleteItem(onDelete = { onDeleteTransaction(transaction) }) {
-                        MonthlyTransactionItem(transaction)
+                    SwipeTransactionItem(
+                        transaction = transaction,
+                        onDelete = { onDeleteTransaction(transaction) },
+                        onToggleStatus = { onToggleTransactionStatus(transaction.id) }
+                    ) {
+                        MonthlyTransactionItem(
+                            transaction = transaction,
+                            onClick = { onTransactionClick(transaction.id) }
+                        )
                         if (index < transactions.lastIndex) {
                             HorizontalDivider()
                         }
@@ -802,36 +819,57 @@ private fun HomeSectionContainer(
 
 @Composable
 @Suppress("DEPRECATION")
-private fun SwipeToDeleteItem(
+private fun SwipeTransactionItem(
+    transaction: HomeTransactionItem,
     onDelete: () -> Unit,
+    onToggleStatus: () -> Unit,
     content: @Composable () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                false
-            } else {
-                false
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    onToggleStatus()
+                    false
+                }
+
+                SwipeToDismissBoxValue.EndToStart -> {
+                    onDelete()
+                    false
+                }
+
+                SwipeToDismissBoxValue.Settled -> false
             }
         }
     )
+    val toggleLabel = if (transaction.status == PaymentStatus.PAID) {
+        "Marcar pendente"
+    } else {
+        "Marcar pago"
+    }
 
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.CenterEnd
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
+                    text = toggleLabel,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
                     text = "Excluir",
-                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -865,8 +903,12 @@ private fun DeleteConfirmationDialog(
 }
 
 @Composable
-private fun MonthlyTransactionItem(transaction: HomeTransactionItem) {
+private fun MonthlyTransactionItem(
+    transaction: HomeTransactionItem,
+    onClick: () -> Unit
+) {
     ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
         headlineContent = {
             Text(transaction.name)
         },
@@ -974,7 +1016,9 @@ private fun HomeScreenPreview() {
                 balanceInCents = 53000
             ),
             onMonthSelected = {},
-            onDeleteTransaction = {}
+            onDeleteTransaction = {},
+            onToggleTransactionStatus = {},
+            onTransactionClick = {}
         )
     }
 }

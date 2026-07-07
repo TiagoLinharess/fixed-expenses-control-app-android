@@ -7,6 +7,22 @@ sealed interface AppRoute {
         override val route: String = "home"
     }
 
+    data object MonthlyTransactionDetail : AppRoute {
+        override val route: String = "monthly-transactions/{transactionId}"
+        const val TRANSACTION_ID_ARGUMENT = "transactionId"
+
+        fun createRoute(transactionId: Long): String =
+            "monthly-transactions/$transactionId"
+    }
+
+    data object EditMonthlyTransaction : AppRoute {
+        override val route: String = "monthly-transactions/{transactionId}/edit"
+        const val TRANSACTION_ID_ARGUMENT = "transactionId"
+
+        fun createRoute(transactionId: Long): String =
+            "monthly-transactions/$transactionId/edit"
+    }
+
     data object RecurringMonthlyTransactions : AppRoute {
         override val route: String = "recurring-monthly-transactions"
     }
