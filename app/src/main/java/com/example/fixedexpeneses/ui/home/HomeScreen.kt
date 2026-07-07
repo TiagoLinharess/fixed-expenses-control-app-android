@@ -104,6 +104,12 @@ fun HomeScreen(
                 )
             }
 
+            item {
+                MonthlyPaymentStatusSection(
+                    transactions = uiState.transactions
+                )
+            }
+
             if (uiState.isGenerating) {
                 item {
                     GeneratingMonthMessage()
@@ -140,6 +146,146 @@ fun HomeScreen(
         )
     }
 }
+
+@Composable
+private fun MonthlyPaymentStatusSection(
+    transactions: List<HomeTransactionItem>,
+    modifier: Modifier = Modifier
+) {
+    val expenseTransactions = transactions.filter { it.type == TransactionType.EXPENSE }
+    val paidTotalInCents = expenseTransactions
+        .filter { it.status == PaymentStatus.PAID }
+        .sumOf { it.amountInCents }
+    val pendingTransactions = expenseTransactions
+        .filter { it.status == PaymentStatus.PENDING }
+        .sortedBy { it.dueDay }
+    val pendingTotalInCents = pendingTransactions.sumOf { it.amountInCents }
+    val dueGroups = pendingTransactions
+        .groupBy { it.dueDay }
+        .toSortedMap()
+        .map { (dueDay, items) ->
+            DueDayGroup(
+                dueDay = dueDay,
+                transactionNames = items.map { it.name },
+                totalInCents = items.sumOf { it.amountInCents }
+            )
+        }
+    val visibleDueGroups = dueGroups.take(MAX_VISIBLE_DUE_GROUPS)
+    val hiddenDueGroupsCount = (dueGroups.size - visibleDueGroups.size).coerceAtLeast(0)
+
+    HomeSectionContainer(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Status do mês",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PaymentStatusAmount(
+                    title = "Pagas",
+                    amountInCents = paidTotalInCents,
+                    modifier = Modifier.weight(1f)
+                )
+                PaymentStatusAmount(
+                    title = "Pendentes",
+                    amountInCents = pendingTotalInCents,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            HorizontalDivider()
+
+            Text(
+                text = "Próximos vencimentos",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (visibleDueGroups.isEmpty()) {
+                Text(
+                    text = "Nenhuma conta pendente neste mês.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                visibleDueGroups.forEach { dueGroup ->
+                    DueDayGroupItem(dueGroup)
+                }
+
+                if (hiddenDueGroupsCount > 0) {
+                    Text(
+                        text = "+ $hiddenDueGroupsCount dias com contas pendentes",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PaymentStatusAmount(
+    title: String,
+    amountInCents: Long,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = amountInCents.toBrazilianCurrency(),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun DueDayGroupItem(
+    dueGroup: DueDayGroup,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(
+            text = "Dia ${dueGroup.dueDay}: ${dueGroup.transactionNames.toReadableList()}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "Total: ${dueGroup.totalInCents.toBrazilianCurrency()}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+private data class DueDayGroup(
+    val dueDay: Int,
+    val transactionNames: List<String>,
+    val totalInCents: Long
+)
+
+private fun List<String>.toReadableList(): String =
+    when (size) {
+        0 -> ""
+        1 -> first()
+        2 -> "${this[0]} e ${this[1]}"
+        else -> "${dropLast(1).joinToString(", ")} e ${last()}"
+    }
 
 @Composable
 private fun HomeFixedHeader(
@@ -777,6 +923,7 @@ private fun Long.percent(percent: Int): Long =
     this * percent / 100
 
 private const val SUGGESTIONS_PER_PAGE = 3
+private const val MAX_VISIBLE_DUE_GROUPS = 3
 
 @Preview(showBackground = true)
 @Composable
@@ -810,6 +957,16 @@ private fun HomeScreenPreview() {
                         paymentMethod = PaymentMethod.CREDIT,
                         status = PaymentStatus.PENDING,
                         sourceDescription = "Parcela 1/6"
+                    ),
+                    HomeTransactionItem(
+                        id = 3,
+                        type = TransactionType.EXPENSE,
+                        name = "Academia",
+                        amountInCents = 9000,
+                        dueDay = 5,
+                        paymentMethod = PaymentMethod.PIX,
+                        status = PaymentStatus.PAID,
+                        sourceDescription = "Fixa"
                     )
                 ),
                 totalIncomeInCents = 100000,
