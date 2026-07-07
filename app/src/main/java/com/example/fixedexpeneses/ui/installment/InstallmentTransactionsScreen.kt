@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -22,10 +23,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,6 +71,8 @@ fun InstallmentTransactionsScreen(
     onDeleteTransaction: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var transactionPendingDeletion by remember { mutableStateOf<InstallmentTransaction?>(null) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -115,21 +122,43 @@ fun InstallmentTransactionsScreen(
                 message = "Adicione uma compra ou entrada parcelada para começar.",
                 modifier = Modifier.weight(1f)
             )
-            else -> LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(items = uiState.items, key = { it.id }) { transaction ->
-                    SwipeToDeleteItem(onDelete = { onDeleteTransaction(transaction.id) }) {
-                        InstallmentTransactionItem(
-                            transaction = transaction,
-                            onClick = { onTransactionClick(transaction.id) }
-                        )
-                        HorizontalDivider()
+            else -> {
+                val sections = uiState.items.toInstallmentSections()
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = 16.dp)
+                ) {
+                    sections.forEach { section ->
+                        item(key = "section-${section.title}") {
+                            TransactionSectionHeader(
+                                title = section.title,
+                                totalInCents = section.totalInCents
+                            )
+                        }
+                        items(items = section.items, key = { it.id }) { transaction ->
+                            SwipeToDeleteItem(onDelete = { transactionPendingDeletion = transaction }) {
+                                InstallmentTransactionItem(
+                                    transaction = transaction,
+                                    onClick = { onTransactionClick(transaction.id) }
+                                )
+                                HorizontalDivider()
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    transactionPendingDeletion?.let { transaction ->
+        DeleteConfirmationDialog(
+            transactionName = transaction.name,
+            onDismiss = { transactionPendingDeletion = null },
+            onConfirm = {
+                onDeleteTransaction(transaction.id)
+                transactionPendingDeletion = null
+            }
+        )
     }
 }
 
@@ -198,6 +227,33 @@ private fun SummaryRow(
 }
 
 @Composable
+private fun TransactionSectionHeader(
+    title: String,
+    totalInCents: Long,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = totalInCents.toBrazilianCurrency(),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
 @Suppress("DEPRECATION")
 private fun SwipeToDeleteItem(
     onDelete: () -> Unit,
@@ -207,7 +263,7 @@ private fun SwipeToDeleteItem(
         confirmValueChange = { value ->
             if (value == SwipeToDismissBoxValue.EndToStart) {
                 onDelete()
-                true
+                false
             } else {
                 false
             }
@@ -235,6 +291,29 @@ private fun SwipeToDeleteItem(
             }
         },
         content = { content() }
+    )
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    transactionName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Excluir parcelada?") },
+        text = { Text("Tem certeza que deseja excluir \"$transactionName\"? Essa ação não pode ser desfeita.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Excluir", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
     )
 }
 
@@ -304,6 +383,44 @@ private val AmountBehavior.label: String
     get() = when (this) {
         AmountBehavior.FIXED -> "Fixo"
         AmountBehavior.VARIABLE -> "Variável"
+    }
+
+private data class InstallmentTransactionSection(
+    val title: String,
+    val items: List<InstallmentTransaction>
+) {
+    val totalInCents: Long = items.sumOf { it.amountInCents }
+}
+
+private fun List<InstallmentTransaction>.toInstallmentSections(): List<InstallmentTransactionSection> {
+    val incomeItems = filter { it.type == TransactionType.INCOME }
+    val expenseItems = filter { it.type == TransactionType.EXPENSE }
+
+    return buildList {
+        if (incomeItems.isNotEmpty()) {
+            add(InstallmentTransactionSection("Entradas", incomeItems))
+        }
+
+        PaymentMethod.entries.forEach { method ->
+            val items = expenseItems.filter { it.paymentMethod == method }
+            if (items.isNotEmpty()) {
+                add(InstallmentTransactionSection(method.sectionLabel, items))
+            }
+        }
+
+        val itemsWithoutPaymentMethod = expenseItems.filter { it.paymentMethod == null }
+        if (itemsWithoutPaymentMethod.isNotEmpty()) {
+            add(InstallmentTransactionSection("Sem método", itemsWithoutPaymentMethod))
+        }
+    }
+}
+
+private val PaymentMethod.sectionLabel: String
+    get() = when (this) {
+        PaymentMethod.PIX -> "Pix"
+        PaymentMethod.CASH -> "Dinheiro"
+        PaymentMethod.CREDIT -> "Crédito"
+        PaymentMethod.DEBIT -> "Débito"
     }
 
 private fun Long.toBrazilianCurrency(): String {

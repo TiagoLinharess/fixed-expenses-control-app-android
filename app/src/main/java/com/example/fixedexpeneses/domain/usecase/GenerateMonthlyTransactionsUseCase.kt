@@ -4,6 +4,7 @@ import com.example.fixedexpeneses.domain.model.InstallmentTransaction
 import com.example.fixedexpeneses.domain.model.PaymentStatus
 import com.example.fixedexpeneses.domain.model.RecurringMonthlyTransaction
 import com.example.fixedexpeneses.domain.model.Transaction
+import com.example.fixedexpeneses.domain.repository.AppPreferencesRepository
 import com.example.fixedexpeneses.domain.repository.InstallmentTransactionRepository
 import com.example.fixedexpeneses.domain.repository.RecurringMonthlyTransactionRepository
 import com.example.fixedexpeneses.domain.repository.TransactionRepository
@@ -12,6 +13,7 @@ class GenerateMonthlyTransactionsUseCase(
     private val recurringMonthlyTransactionRepository: RecurringMonthlyTransactionRepository,
     private val installmentTransactionRepository: InstallmentTransactionRepository,
     private val transactionRepository: TransactionRepository,
+    private val appPreferencesRepository: AppPreferencesRepository,
     private val now: () -> Long = { System.currentTimeMillis() }
 ) {
     suspend operator fun invoke(referenceMonth: Int, referenceYear: Int): List<Long> {
@@ -41,6 +43,11 @@ class GenerateMonthlyTransactionsUseCase(
                     recurringMonthlyTransactionId = recurringTransaction.id,
                     referenceMonth = referenceMonth,
                     referenceYear = referenceYear
+                ) || appPreferencesRepository.isGeneratedTransactionDeleted(
+                    recurringMonthlyTransactionId = recurringTransaction.id,
+                    installmentTransactionId = null,
+                    referenceMonth = referenceMonth,
+                    referenceYear = referenceYear
                 )
             }
             .map { recurringTransaction ->
@@ -59,6 +66,11 @@ class GenerateMonthlyTransactionsUseCase(
         installmentTransactionRepository.getByYearMonth(yearMonth)
             .filterNot { installmentTransaction ->
                 transactionRepository.existsForInstallmentTransaction(
+                    installmentTransactionId = installmentTransaction.id,
+                    referenceMonth = referenceMonth,
+                    referenceYear = referenceYear
+                ) || appPreferencesRepository.isGeneratedTransactionDeleted(
+                    recurringMonthlyTransactionId = null,
                     installmentTransactionId = installmentTransaction.id,
                     referenceMonth = referenceMonth,
                     referenceYear = referenceYear

@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.fixedexpeneses.navigation.AppRoute
 import com.example.fixedexpeneses.navigation.TopLevelDestination
+import com.example.fixedexpeneses.ui.home.HomeRoute
 import com.example.fixedexpeneses.ui.installment.create.CreateInstallmentTransactionRoute
 import com.example.fixedexpeneses.ui.installment.detail.InstallmentTransactionDetailRoute
 import com.example.fixedexpeneses.ui.installment.edit.EditInstallmentTransactionRoute
@@ -77,7 +78,7 @@ fun FixedExpenesesApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(AppRoute.Home.route) {
-                PlaceholderScreen("Home")
+                HomeRoute()
             }
 
             composable(AppRoute.RecurringMonthlyTransactions.route) {

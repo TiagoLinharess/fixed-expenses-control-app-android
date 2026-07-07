@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.fixedexpeneses.FixedExpensesApplication
 import com.example.fixedexpeneses.di.AppContainer
+import com.example.fixedexpeneses.ui.home.HomeViewModel
 import com.example.fixedexpeneses.ui.installment.create.CreateInstallmentTransactionViewModel
 import com.example.fixedexpeneses.ui.installment.detail.InstallmentTransactionDetailViewModel
 import com.example.fixedexpeneses.ui.installment.edit.EditInstallmentTransactionViewModel
@@ -21,6 +22,17 @@ class AppViewModelFactory(
     private val appContainer: AppContainer
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return HomeViewModel(
+                appPreferencesRepository = appContainer.appPreferencesRepository,
+                recurringMonthlyTransactionRepository = appContainer.recurringMonthlyTransactionRepository,
+                installmentTransactionRepository = appContainer.installmentTransactionRepository,
+                transactionRepository = appContainer.transactionRepository,
+                generateMonthlyTransactionsUseCase = appContainer.generateMonthlyTransactionsUseCase
+            ) as T
+        }
+
         if (modelClass.isAssignableFrom(RecurringMonthlyTransactionsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
             return RecurringMonthlyTransactionsViewModel(

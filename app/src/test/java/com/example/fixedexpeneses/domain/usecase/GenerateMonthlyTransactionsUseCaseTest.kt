@@ -7,6 +7,7 @@ import com.example.fixedexpeneses.domain.model.PaymentStatus
 import com.example.fixedexpeneses.domain.model.RecurringMonthlyTransaction
 import com.example.fixedexpeneses.domain.model.Transaction
 import com.example.fixedexpeneses.domain.model.TransactionType
+import com.example.fixedexpeneses.domain.repository.AppPreferencesRepository
 import com.example.fixedexpeneses.domain.repository.InstallmentTransactionRepository
 import com.example.fixedexpeneses.domain.repository.RecurringMonthlyTransactionRepository
 import com.example.fixedexpeneses.domain.repository.TransactionRepository
@@ -29,6 +30,7 @@ class GenerateMonthlyTransactionsUseCaseTest {
                 transactions = listOf(sampleInstallmentTransaction())
             ),
             transactionRepository = transactionRepository,
+            appPreferencesRepository = FakeAppPreferencesRepository(),
             now = { 1000L }
         )
 
@@ -54,7 +56,8 @@ class GenerateMonthlyTransactionsUseCaseTest {
         val useCase = GenerateMonthlyTransactionsUseCase(
             recurringMonthlyTransactionRepository = FakeRecurringMonthlyTransactionRepository(listOf(recurring)),
             installmentTransactionRepository = FakeInstallmentTransactionRepository(listOf(installment)),
-            transactionRepository = transactionRepository
+            transactionRepository = transactionRepository,
+            appPreferencesRepository = FakeAppPreferencesRepository()
         )
 
         val insertedIds = useCase(referenceMonth = 7, referenceYear = 2026)
@@ -196,5 +199,57 @@ class GenerateMonthlyTransactionsUseCaseTest {
             transactions.map { insert(it) }
         override suspend fun update(transaction: Transaction) = Unit
         override suspend fun deleteById(id: Long) = Unit
+    }
+
+    private class FakeAppPreferencesRepository : AppPreferencesRepository {
+        private val deletedKeys = mutableSetOf<String>()
+
+        override fun getOrCreateFirstAvailableYearMonth(currentYearMonth: Int): Int =
+            currentYearMonth
+
+        override fun isGeneratedTransactionDeleted(
+            recurringMonthlyTransactionId: Long?,
+            installmentTransactionId: Long?,
+            referenceMonth: Int,
+            referenceYear: Int
+        ): Boolean =
+            deletedKeys.contains(
+                deletedTransactionKey(
+                    recurringMonthlyTransactionId = recurringMonthlyTransactionId,
+                    installmentTransactionId = installmentTransactionId,
+                    referenceMonth = referenceMonth,
+                    referenceYear = referenceYear
+                )
+            )
+
+        override fun markGeneratedTransactionDeleted(
+            recurringMonthlyTransactionId: Long?,
+            installmentTransactionId: Long?,
+            referenceMonth: Int,
+            referenceYear: Int
+        ) {
+            deletedKeys.add(
+                deletedTransactionKey(
+                    recurringMonthlyTransactionId = recurringMonthlyTransactionId,
+                    installmentTransactionId = installmentTransactionId,
+                    referenceMonth = referenceMonth,
+                    referenceYear = referenceYear
+                )
+            )
+        }
+
+        private fun deletedTransactionKey(
+            recurringMonthlyTransactionId: Long?,
+            installmentTransactionId: Long?,
+            referenceMonth: Int,
+            referenceYear: Int
+        ): String =
+            when {
+                recurringMonthlyTransactionId != null ->
+                    "recurring:$recurringMonthlyTransactionId:$referenceYear:$referenceMonth"
+                installmentTransactionId != null ->
+                    "installment:$installmentTransactionId:$referenceYear:$referenceMonth"
+                else -> "unknown:$referenceYear:$referenceMonth"
+            }
     }
 }
