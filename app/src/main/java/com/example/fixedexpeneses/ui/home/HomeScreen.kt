@@ -1,6 +1,7 @@
 package com.example.fixedexpeneses.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -95,6 +97,13 @@ fun HomeScreen(
                 )
             }
 
+            item {
+                FinancialSuggestionsSection(
+                    totalIncomeInCents = uiState.totalIncomeInCents,
+                    totalExpenseInCents = uiState.totalExpenseInCents
+                )
+            }
+
             if (uiState.isGenerating) {
                 item {
                     GeneratingMonthMessage()
@@ -111,10 +120,12 @@ fun HomeScreen(
                 }
             }
 
-            monthlyTransactionsSection(
-                transactions = uiState.transactions,
-                onDeleteTransaction = { transactionPendingDeletion = it }
-            )
+            item {
+                MonthlyTransactionsSection(
+                    transactions = uiState.transactions,
+                    onDeleteTransaction = { transactionPendingDeletion = it }
+                )
+            }
         }
     }
 
@@ -144,7 +155,6 @@ private fun HomeFixedHeader(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         HomeHeader()
-
         MonthSelector(
             selectedMonthLabel = selectedMonthLabel,
             options = options,
@@ -239,49 +249,48 @@ private fun HomeProgressSection(
         MaterialTheme.colorScheme.primary
     }
 
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    HomeSectionContainer(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Comprometimento fixo do mês",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "${totalExpenseInCents.toBrazilianCurrency()} de ${totalIncomeInCents.toBrazilianCurrency()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    text = "Comprometimento fixo do mês",
+                    text = "$percentage%",
                     style = MaterialTheme.typography.titleSmall,
+                    color = progressColor,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = "${totalExpenseInCents.toBrazilianCurrency()} de ${totalIncomeInCents.toBrazilianCurrency()}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-            Text(
-                text = "$percentage%",
-                style = MaterialTheme.typography.titleSmall,
-                color = progressColor,
-                fontWeight = FontWeight.SemiBold
+
+            HomeProgressBar(
+                progress = progress,
+                progressColor = progressColor,
+                modifier = Modifier.fillMaxWidth()
             )
-        }
 
-        HomeProgressBar(
-            progress = progress,
-            progressColor = progressColor,
-            modifier = Modifier.fillMaxWidth()
-        )
+            Text(
+                text = commitmentText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-        Text(
-            text = commitmentText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        if (commitmentAlert != null) {
-            IncomeCommitmentAlert(level = commitmentAlert)
+            if (commitmentAlert != null) {
+                IncomeCommitmentAlert(level = commitmentAlert)
+            }
         }
     }
 }
@@ -291,17 +300,17 @@ private fun IncomeCommitmentAlert(
     level: IncomeCommitmentAlertLevel,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = level.containerColor(),
-            contentColor = level.contentColor()
-        )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(level.containerColor())
+            .padding(12.dp)
     ) {
         Text(
             text = level.message,
-            modifier = Modifier.padding(12.dp),
             style = MaterialTheme.typography.bodySmall,
+            color = level.contentColor(),
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -367,6 +376,214 @@ private fun HomeProgressBar(
 }
 
 @Composable
+private fun FinancialSuggestionsSection(
+    totalIncomeInCents: Long,
+    totalExpenseInCents: Long,
+    modifier: Modifier = Modifier
+) {
+    val suggestions = remember(totalIncomeInCents, totalExpenseInCents) {
+        buildFinancialSuggestions(
+            totalIncomeInCents = totalIncomeInCents,
+            totalExpenseInCents = totalExpenseInCents
+        ).shuffled()
+    }
+    val suggestionPages = suggestions.chunked(SUGGESTIONS_PER_PAGE)
+    val listState = rememberLazyListState()
+
+    HomeSectionContainer(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Sugestões financeiras",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (totalIncomeInCents <= 0L) {
+                Text(
+                    text = "Cadastre uma entrada fixa para receber sugestões financeiras.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyRow(
+                    state = listState,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    itemsIndexed(suggestionPages) { _, page ->
+                        Column(
+                            modifier = Modifier.fillParentMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            page.forEach { suggestion ->
+                                FinancialSuggestionItem(suggestion)
+                            }
+                        }
+                    }
+                }
+
+                if (suggestionPages.size > 1) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        suggestionPages.indices.forEach { index ->
+                            val isSelected = index == listState.firstVisibleItemIndex
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 3.dp)
+                                    .size(if (isSelected) 8.dp else 6.dp)
+                                    .clip(RoundedCornerShape(50))
+                                    .background(
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.outlineVariant
+                                        }
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FinancialSuggestionItem(
+    suggestion: FinancialSuggestion,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = suggestion.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = suggestion.highlightedValue,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = suggestion.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+private fun buildFinancialSuggestions(
+    totalIncomeInCents: Long,
+    totalExpenseInCents: Long
+): List<FinancialSuggestion> {
+    if (totalIncomeInCents <= 0L) return emptyList()
+
+    val monthlyReserveInCents = totalIncomeInCents.percent(10)
+    val emergencyReserveTargetInCents = totalIncomeInCents * 6
+    val flexibleLimitByIncomeInCents = totalIncomeInCents.percent(30)
+    val flexibleLimitByAvailableIncomeInCents = (
+        totalIncomeInCents - totalExpenseInCents - monthlyReserveInCents
+    ).coerceAtLeast(0)
+    val flexibleLimitInCents = minOf(
+        flexibleLimitByIncomeInCents,
+        flexibleLimitByAvailableIncomeInCents
+    )
+    val estimatedLeftoverInCents = totalIncomeInCents - totalExpenseInCents - monthlyReserveInCents
+    val fiftyPercentIncomeInCents = totalIncomeInCents.percent(50)
+    val roomBeforeFiftyPercentInCents = fiftyPercentIncomeInCents - totalExpenseInCents
+
+    return buildList {
+        add(
+            FinancialSuggestion(
+                title = "Reserva mensal sugerida",
+                highlightedValue = monthlyReserveInCents.toBrazilianCurrency(),
+                description = "para construir sua reserva de emergência este mês."
+            )
+        )
+        add(
+            FinancialSuggestion(
+                title = "Meta de reserva de emergência",
+                highlightedValue = emergencyReserveTargetInCents.toBrazilianCurrency(),
+                description = "equivalente a 6 meses da sua entrada fixa."
+            )
+        )
+        add(
+            FinancialSuggestion(
+                title = "Gastos flexíveis",
+                highlightedValue = flexibleLimitInCents.toBrazilianCurrency(),
+                description = "para dia a dia e lazer, considerando renda, gastos fixos e reserva."
+            )
+        )
+        add(
+            FinancialSuggestion(
+                title = "Sobra estimada",
+                highlightedValue = estimatedLeftoverInCents.toBrazilianCurrency(),
+                description = "após gastos fixos e reserva sugerida para organizar o restante do mês."
+            )
+        )
+        add(
+            if (roomBeforeFiftyPercentInCents > 0) {
+                FinancialSuggestion(
+                    title = "Espaço para novas contas",
+                    highlightedValue = roomBeforeFiftyPercentInCents.toBrazilianCurrency(),
+                    description = "antes de chegar a 50% de comprometimento fixo."
+                )
+            } else {
+                FinancialSuggestion(
+                    title = "Novas contas",
+                    highlightedValue = "R$ 0,00",
+                    description = "recomendado para novas contas; seu comprometimento já passou de 50%."
+                )
+            }
+        )
+        add(
+            FinancialSuggestion(
+                title = "Reserva mínima para contas fixas",
+                highlightedValue = (totalExpenseInCents * 6).toBrazilianCurrency(),
+                description = "para cobrir 6 meses dos seus gastos fixos atuais."
+            )
+        )
+
+        if (roomBeforeFiftyPercentInCents < 0) {
+            add(
+                FinancialSuggestion(
+                    title = "Meta de redução",
+                    highlightedValue = (-roomBeforeFiftyPercentInCents).toBrazilianCurrency(),
+                    description = "em gastos fixos para voltar a 50% de comprometimento."
+                )
+            )
+        }
+
+        if (flexibleLimitInCents <= totalIncomeInCents.percent(10)) {
+            add(
+                FinancialSuggestion(
+                    title = "Margem apertada",
+                    highlightedValue = flexibleLimitInCents.toBrazilianCurrency(),
+                    description = "sobram para dia a dia e lazer depois dos fixos e da reserva."
+                )
+            )
+        }
+    }
+}
+
+private data class FinancialSuggestion(
+    val title: String,
+    val highlightedValue: String,
+    val description: String
+)
+
+@Composable
 private fun GeneratingMonthMessage(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -382,37 +599,58 @@ private fun GeneratingMonthMessage(modifier: Modifier = Modifier) {
     }
 }
 
-private fun LazyListScope.monthlyTransactionsSection(
+@Composable
+private fun MonthlyTransactionsSection(
     transactions: List<HomeTransactionItem>,
-    onDeleteTransaction: (HomeTransactionItem) -> Unit
+    onDeleteTransaction: (HomeTransactionItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    if (transactions.isEmpty()) {
-        item {
+    HomeSectionContainer(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = "Nenhuma transação gerada para este mês.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Transações do mês",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
             )
-        }
-        return
-    }
 
-    item {
-        Text(
-            text = "Transações do mês",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-
-    items(
-        items = transactions,
-        key = { it.id }
-    ) { transaction ->
-        SwipeToDeleteItem(onDelete = { onDeleteTransaction(transaction) }) {
-            MonthlyTransactionItem(transaction)
-            HorizontalDivider()
+            if (transactions.isEmpty()) {
+                Text(
+                    text = "Nenhuma transação gerada para este mês.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                transactions.forEachIndexed { index, transaction ->
+                    SwipeToDeleteItem(onDelete = { onDeleteTransaction(transaction) }) {
+                        MonthlyTransactionItem(transaction)
+                        if (index < transactions.lastIndex) {
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun HomeSectionContainer(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(14.dp)
+    ) {
+        content()
     }
 }
 
@@ -528,10 +766,17 @@ private val PaymentStatus.label: String
     }
 
 private fun Long.toBrazilianCurrency(): String {
-    val reais = this / 100
-    val cents = kotlin.math.abs(this % 100)
-    return "R$ $reais,${cents.toString().padStart(2, '0')}"
+    val absoluteValue = kotlin.math.abs(this)
+    val signal = if (this < 0) "-" else ""
+    val reais = absoluteValue / 100
+    val cents = absoluteValue % 100
+    return "${signal}R$ $reais,${cents.toString().padStart(2, '0')}"
 }
+
+private fun Long.percent(percent: Int): Long =
+    this * percent / 100
+
+private const val SUGGESTIONS_PER_PAGE = 3
 
 @Preview(showBackground = true)
 @Composable
