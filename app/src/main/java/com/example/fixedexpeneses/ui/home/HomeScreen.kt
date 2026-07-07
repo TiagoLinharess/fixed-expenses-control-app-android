@@ -3,6 +3,7 @@ package com.example.fixedexpeneses.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -332,7 +333,7 @@ private fun HomeHeader(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            text = "Home",
+            text = "Resumo",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.SemiBold
         )
@@ -569,12 +570,16 @@ private fun FinancialSuggestionsSection(
             } else {
                 LazyRow(
                     state = listState,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    flingBehavior = rememberSnapFlingBehavior(lazyListState = listState),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     itemsIndexed(suggestionPages) { _, page ->
                         Column(
-                            modifier = Modifier.fillParentMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            modifier = Modifier
+                                .fillParentMaxWidth()
+                                .padding(horizontal = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             page.forEach { suggestion ->
                                 FinancialSuggestionItem(suggestion)
@@ -617,31 +622,29 @@ private fun FinancialSuggestionItem(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Text(
             text = suggestion.title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                text = suggestion.highlightedValue,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = suggestion.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-        }
+        Text(
+            text = suggestion.highlightedValue,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = suggestion.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

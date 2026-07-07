@@ -1,4 +1,4 @@
-package com.example.fixedexpeneses.ui.installment.edit
+﻿package com.example.fixedexpeneses.ui.installment.edit
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

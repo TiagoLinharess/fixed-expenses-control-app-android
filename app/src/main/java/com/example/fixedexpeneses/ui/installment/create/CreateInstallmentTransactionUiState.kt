@@ -26,13 +26,22 @@ data class CreateInstallmentTransactionUiState(
             return name.isNotBlank() &&
                 amount.toAmountInCentsOrNull() != null &&
                 (dueDay.toIntOrNull() ?: 0) in 1..31 &&
-                from.isValidYearMonth() &&
-                to.isValidYearMonth() &&
+                yearMonthFrom.isValidMonthYearText() &&
+                yearMonthTo.isValidMonthYearText() &&
                 from != null &&
                 to != null &&
                 from <= to &&
                 !isSaving
         }
+}
+
+fun String.isValidMonthYearText(): Boolean {
+    val digits = filter { it.isDigit() }
+    if (digits.length != 6) return false
+
+    val month = digits.take(2).toIntOrNull()
+    val year = digits.drop(2).toIntOrNull()
+    return month in 1..12 && year != null && year > 0
 }
 
 fun Int?.isValidYearMonth(): Boolean {

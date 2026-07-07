@@ -1,4 +1,4 @@
-package com.example.fixedexpeneses.ui.installment.create
+﻿package com.example.fixedexpeneses.ui.installment.create
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -84,6 +85,7 @@ fun CreateInstallmentTransactionScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -102,8 +104,8 @@ fun CreateInstallmentTransactionScreen(
         }
         OutlinedTextField(uiState.dueDay, onDueDayChange, label = { Text("Dia do mês") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            OutlinedTextField(uiState.yearMonthFrom, onYearMonthFromChange, label = { Text("Início (MM/AAAA)") }, singleLine = true, visualTransformation = MonthYearVisualTransformation, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-            OutlinedTextField(uiState.yearMonthTo, onYearMonthToChange, label = { Text("Fim (MM/AAAA)") }, singleLine = true, visualTransformation = MonthYearVisualTransformation, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
+            MonthYearTextField(uiState.yearMonthFrom, onYearMonthFromChange, "Início (MM/AAAA)", Modifier.weight(1f))
+            MonthYearTextField(uiState.yearMonthTo, onYearMonthToChange, "Fim (MM/AAAA)", Modifier.weight(1f))
         }
         ChipSection("Método de pagamento") {
             FilterChip(selected = uiState.paymentMethod == null, onClick = { onPaymentMethodChange(null) }, label = { Text("Nenhum") })
@@ -118,6 +120,32 @@ fun CreateInstallmentTransactionScreen(
             Text(if (uiState.isSaving) "Salvando..." else saveButtonText)
         }
     }
+}
+
+@Composable
+private fun MonthYearTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val isInvalid = value.isNotBlank() && !value.isValidMonthYearText()
+
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = MonthYearVisualTransformation,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        isError = isInvalid,
+        supportingText = {
+            if (isInvalid) {
+                Text("Use o formato MM/AAAA")
+            }
+        },
+        modifier = modifier
+    )
 }
 
 @Composable

@@ -2,6 +2,7 @@ package com.example.fixedexpeneses.ui
 
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Icon
@@ -12,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -44,32 +46,36 @@ fun FixedExpenesesApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val density = LocalDensity.current
+    val isKeyboardVisible = WindowInsets.ime.getBottom(density) > 0
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets.safeDrawing,
         bottomBar = {
-            NavigationBar {
-                TopLevelDestination.entries.forEach { destination ->
-                    NavigationBarItem(
-                        icon = {
-                            Icon(
-                                painterResource(destination.icon),
-                                contentDescription = destination.label
-                            )
-                        },
-                        label = { Text(destination.label) },
-                        selected = currentDestination.isTopLevelDestinationInHierarchy(destination),
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
+            if (!isKeyboardVisible) {
+                NavigationBar {
+                    TopLevelDestination.entries.forEach { destination ->
+                        NavigationBarItem(
+                            icon = {
+                                Icon(
+                                    painterResource(destination.icon),
+                                    contentDescription = destination.label
+                                )
+                            },
+                            label = { Text(destination.label) },
+                            selected = currentDestination.isTopLevelDestinationInHierarchy(destination),
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -330,6 +336,6 @@ private fun NavDestination?.isTopLevelDestinationInHierarchy(
 @Composable
 fun PlaceholderScreenPreview() {
     FixedExpenesesTheme {
-        PlaceholderScreen("Home")
+        PlaceholderScreen("Resumo")
     }
 }

@@ -9,7 +9,7 @@ enum class TopLevelDestination(
     val route: String
 ) {
     HOME(
-        label = "Home",
+        label = "Resumo",
         icon = R.drawable.ic_home,
         route = AppRoute.Home.route
     ),
