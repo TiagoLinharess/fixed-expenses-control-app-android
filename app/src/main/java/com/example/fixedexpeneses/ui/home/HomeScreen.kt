@@ -111,6 +111,14 @@ fun HomeScreen(
             }
 
             item {
+                DailyWeeklySpendingSection(
+                    selectedYearMonth = uiState.selectedYearMonth,
+                    totalIncomeInCents = uiState.totalIncomeInCents,
+                    totalExpenseInCents = uiState.totalExpenseInCents
+                )
+            }
+
+            item {
                 MonthlyPaymentStatusSection(
                     transactions = uiState.transactions
                 )
@@ -645,13 +653,9 @@ private fun buildFinancialSuggestions(
 
     val monthlyReserveInCents = totalIncomeInCents.percent(10)
     val emergencyReserveTargetInCents = totalIncomeInCents * 6
-    val flexibleLimitByIncomeInCents = totalIncomeInCents.percent(30)
-    val flexibleLimitByAvailableIncomeInCents = (
-        totalIncomeInCents - totalExpenseInCents - monthlyReserveInCents
-    ).coerceAtLeast(0)
-    val flexibleLimitInCents = minOf(
-        flexibleLimitByIncomeInCents,
-        flexibleLimitByAvailableIncomeInCents
+    val flexibleLimitInCents = calculateFlexibleSpendingLimitInCents(
+        totalIncomeInCents = totalIncomeInCents,
+        totalExpenseInCents = totalExpenseInCents
     )
     val estimatedLeftoverInCents = totalIncomeInCents - totalExpenseInCents - monthlyReserveInCents
     val fiftyPercentIncomeInCents = totalIncomeInCents.percent(50)
@@ -735,6 +739,130 @@ private data class FinancialSuggestion(
     val title: String,
     val highlightedValue: String,
     val description: String
+)
+
+private fun calculateFlexibleSpendingLimitInCents(
+    totalIncomeInCents: Long,
+    totalExpenseInCents: Long
+): Long {
+    val monthlyReserveInCents = totalIncomeInCents.percent(10)
+    val flexibleLimitByIncomeInCents = totalIncomeInCents.percent(30)
+    val flexibleLimitByAvailableIncomeInCents = (
+        totalIncomeInCents - totalExpenseInCents - monthlyReserveInCents
+    ).coerceAtLeast(0)
+
+    return minOf(
+        flexibleLimitByIncomeInCents,
+        flexibleLimitByAvailableIncomeInCents
+    )
+}
+
+@Composable
+private fun DailyWeeklySpendingSection(
+    selectedYearMonth: Int,
+    totalIncomeInCents: Long,
+    totalExpenseInCents: Long,
+    modifier: Modifier = Modifier
+) {
+    val spendingSuggestion = buildDailyWeeklySpendingSuggestion(
+        selectedYearMonth = selectedYearMonth,
+        totalIncomeInCents = totalIncomeInCents,
+        totalExpenseInCents = totalExpenseInCents
+    )
+
+    HomeSectionContainer(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                text = "Gastos diários e semanais",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (spendingSuggestion == null) {
+                Text(
+                    text = "Cadastre uma entrada fixa para calcular uma sugestão de gasto diário e semanal.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SpendingCadenceAmount(
+                        title = "Por dia",
+                        amountInCents = spendingSuggestion.dailyAmountInCents,
+                        modifier = Modifier.weight(1f)
+                    )
+                    SpendingCadenceAmount(
+                        title = "Por semana",
+                        amountInCents = spendingSuggestion.weeklyAmountInCents,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text(
+                    text = "Baseado em ${spendingSuggestion.daysInMonth} dias, gastos fixos e reserva sugerida de 10%.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingCadenceAmount(
+    title: String,
+    amountInCents: Long,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = amountInCents.toBrazilianCurrency(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+private fun buildDailyWeeklySpendingSuggestion(
+    selectedYearMonth: Int,
+    totalIncomeInCents: Long,
+    totalExpenseInCents: Long
+): DailyWeeklySpendingSuggestion? {
+    if (totalIncomeInCents <= 0L) return null
+
+    val monthlyFlexibleLimitInCents = calculateFlexibleSpendingLimitInCents(
+        totalIncomeInCents = totalIncomeInCents,
+        totalExpenseInCents = totalExpenseInCents
+    )
+    val daysInMonth = selectedYearMonth.daysInMonth()
+    val dailyAmountInCents = monthlyFlexibleLimitInCents / daysInMonth
+
+    return DailyWeeklySpendingSuggestion(
+        dailyAmountInCents = dailyAmountInCents,
+        weeklyAmountInCents = dailyAmountInCents * DAYS_IN_WEEK,
+        daysInMonth = daysInMonth
+    )
+}
+
+private data class DailyWeeklySpendingSuggestion(
+    val dailyAmountInCents: Long,
+    val weeklyAmountInCents: Long,
+    val daysInMonth: Int
 )
 
 @Composable
@@ -964,8 +1092,24 @@ private fun Long.toBrazilianCurrency(): String {
 private fun Long.percent(percent: Int): Long =
     this * percent / 100
 
+private fun Int.daysInMonth(): Int {
+    val year = this / 100
+    val month = this % 100
+
+    return when (month) {
+        1, 3, 5, 7, 8, 10, 12 -> 31
+        4, 6, 9, 11 -> 30
+        2 -> if (year.isLeapYear()) 29 else 28
+        else -> 30
+    }
+}
+
+private fun Int.isLeapYear(): Boolean =
+    this % 4 == 0 && (this % 100 != 0 || this % 400 == 0)
+
 private const val SUGGESTIONS_PER_PAGE = 3
 private const val MAX_VISIBLE_DUE_GROUPS = 3
+private const val DAYS_IN_WEEK = 7
 
 @Preview(showBackground = true)
 @Composable
